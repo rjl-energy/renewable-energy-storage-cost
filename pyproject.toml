@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "renewable-cost"
+version = "0.1.0"
+description = ""
+authors = ["Richard Lyon <richlyon@mac.com>"]
+readme = "README.md"
+packages = [{include = "renewable_cost"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+requests = "^2.28.1"
+pandas = "^1.5.2"
+pydantic = "^1.10.4"
+matplotlib = "^3.6.2"
+pytz = "^2022.7"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
