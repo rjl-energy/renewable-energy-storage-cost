@@ -9,20 +9,25 @@ from sheffield import solar
 
 
 def compute():
-    start_time = datetime(2022, 1, 1)
-    end_time = datetime(2022, 6, 30)
+    pd.set_option('display.max_rows', 500)
 
-    # wind_df = wind(start_time, end_time)
-    # solar_df = solar(start_time, end_time)
-    demand_df = demand(start_time, end_time)
+    start_time = datetime(2022, 1, 1)
+    end_time = datetime(2022, 12, 31)
+
+    wind_df = wind(start_time, end_time, from_disk=True)
+    wind_df = wind_df.resample("1D").mean()
+
+    solar_df = solar(start_time, end_time, from_disk=True)
+    solar_df = solar_df.resample("1D").mean()
+
+    demand_df = demand(start_time, end_time, from_disk=True)
+    demand_df = demand_df.resample("1D").mean()
 
     df = pd.DataFrame(columns=["wind", "solar", "demand"])
 
-    # df["wind"] = wind_df
-    # df["solar"] = solar_df["generation_mw"]
-    df["demand"] = demand_df["INDO_mw"]
-    #
-    # print(df.head())
+    df["wind"] = wind_df
+    df["solar"] = solar_df["generation_mw"]
+    df["demand"] = demand_df
 
     df.plot()
     plt.show()

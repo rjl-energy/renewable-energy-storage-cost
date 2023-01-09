@@ -52,16 +52,21 @@ def dict_from_list(data: List) -> Dict:
     return res
 
 
-def solar(start_time: datetime, end_time: datetime) -> pd.DataFrame:
+def solar(start_time: datetime, end_time: datetime, from_disk=True) -> pd.DataFrame:
     """
     Get solar generation for the given time period.
+
     Args:
         start_time: The start date of the period
         end_time: The end date of the period
+        from_disk: Read from pickle file
 
     Returns:
-        A dataframe ot total solar daily generation.
+        A dataframe of total solar daily generation.
     """
+    if from_disk:
+        df = pd.read_pickle("data/sheffield_solar_half_hourly.pkl")
+        return df
 
     # Get the raw data
 
@@ -107,8 +112,8 @@ def solar(start_time: datetime, end_time: datetime) -> pd.DataFrame:
     df.index = pd.to_datetime(df.index)
     df.index = df.index.tz_localize(None)
 
-    # downsample to daily
+    print(df.head(200))
 
-    df = df.resample("1D").mean()
+    df.to_pickle("data/sheffield_solar_half_hourly.pkl")
 
     return df

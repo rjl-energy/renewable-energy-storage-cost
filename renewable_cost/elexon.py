@@ -17,7 +17,7 @@ import pytz
 from requests import Response
 
 
-# Represents the API return schema
+# Represents the API return schemas
 class Report(BaseModel):
     fuelType: str
     generation: int
@@ -35,11 +35,17 @@ class DemandData(BaseModel):
     ITSDO: float | None = Field(alias="initialTransmissionSystemDemandOutturn")
 
 
+class HourlyDemandData(BaseModel):
+    startTime: datetime
+    demand: int
+
+
 def get_response(
-    endpoint: str, params: dict, start_time: datetime, end_time: datetime
+        endpoint: str, params: dict, start_time: datetime, end_time: datetime
 ) -> Response:
     """
-    Get the response for the given endpoint and time period
+    Get the response for the given endpoint and time period.
+
     Args:
         endpint: The URL to get
         start_time: The start date of the period
@@ -49,9 +55,11 @@ def get_response(
         The Response object
 
     """
+
+    # pprint(params)
+
     url = f"https://data.elexon.co.uk/bmrs/api/v1/{endpoint}"
     headers = {"Cache-Control": "no-cache"}
-    pprint(params)
     response = requests.get(url, headers=headers, params=parse.urlencode(params))
 
     if not response.ok:
@@ -62,16 +70,24 @@ def get_response(
     return response
 
 
-def all_fuels(start_time: datetime, end_time: datetime) -> pd.DataFrame:
+def all_fuels(
+        start_time: datetime, end_time: datetime, from_disk: bool = False
+) -> pd.DataFrame:
     """
     Get generation for all fuels for the given time period.
+
     Args:
         start_time: The start date of the period
         end_time: The end date of the period
+        from_disk: Read from pickle file
 
     Returns:
-        A dataframe ot total daily generation  for each fuel type.
+        A dataframe ot total daily generation for each fuel type.
     """
+
+    if from_disk:
+        df = pd.read_pickle("data/generation_all_fuels_daily.pkl")
+        return df
 
     # get the raw data (generation is in MW)
 
@@ -80,11 +96,13 @@ def all_fuels(start_time: datetime, end_time: datetime) -> pd.DataFrame:
         "endTime": end_time.isoformat(),
         "format": "json",
     }
+
     response = get_response("generation/outturn/summary", params, start_time, end_time)
 
     # build the raw dataframe
 
     response_data = [GenerationData(**item) for item in response.json()]
+
     df = pd.DataFrame(columns=["date", "type", "generation_mw"])
     rows = []
     for period in response_data:
@@ -103,29 +121,31 @@ def all_fuels(start_time: datetime, end_time: datetime) -> pd.DataFrame:
 
     df = df.pivot(columns="type", values="generation_mw")
 
-    # downsample to daily
-
-    df = df.resample("1D").mean()
-
     # normalise the time index
 
     df.index = pd.to_datetime(df.index)
     df.index = df.index.tz_localize(None)
 
+    df.to_pickle("data/generation_all_fuels_daily.pkl")
+
     return df
 
 
-def wind(start_time: datetime, end_time: datetime) -> pd.DataFrame:
+def wind(
+        start_time: datetime, end_time: datetime, from_disk: bool = False
+) -> pd.DataFrame:
     """
     Get total UK (Scotland, England, and Wales wind generation for the given time period.
+
     Args:
         start_time: The start date of the period
         end_time: The end date of the period
+        from_disk: Read from pickle file
 
     Returns:
         A dataframe ot total daily generation.
     """
-    fuels_df = all_fuels(start_time, end_time)
+    fuels_df = all_fuels(start_time, end_time, from_disk)
     df = fuels_df["WIND"]
 
     df.columns = ["total"]
@@ -133,49 +153,54 @@ def wind(start_time: datetime, end_time: datetime) -> pd.DataFrame:
     return df
 
 
-def demand(start_time: datetime, end_time: datetime) -> pd.DataFrame:
+def demand(
+        start_time: datetime, end_time: datetime, from_disk: bool = False
+) -> pd.DataFrame:
     """
-    Get Demand Outturn for the given time period
+    Get hourly demand for the given period.
 
-    Provides Initial Demand Outturn (INDO) and Initial Transmission System Demand Outturn (ITSDO)
+    The hourly dataset is saved as a pickle file to disk. See:
+    https://developer.data.elexon.co.uk/api-details#api=prod-insol-insights-api&operation=get-demand-summary
 
-    https://developer.data.elexon.co.uk/api-details#api=prod-insol-insights-api&operation=get-demand
     Args:
         start_time: The start date of the period
         end_time: The end date of the period
+        from_disk: Read from pickle file
 
     Returns:
-        A dataframe of daily average demand data in MW
-
+        A dataframe with hourly demand data.
     """
+
+    if from_disk:
+        df = pd.read_pickle("data/elexon_demand_hourly.pkl")
+        return df
+
     # get the raw data (demand is in MW)
 
-    # page through in 28 day intervals
-
-    df = pd.DataFrame(columns=["date", "INDO_mw", "ITSDO_mw"])
+    df = pd.DataFrame(columns=["date", "demand_mw"])
     rows = []
 
+    # The API only returns maximum of 7 days, so we page the requests in 7 day intervals.
     current_end_time = start_time - timedelta(days=1)
 
     while current_end_time < end_time:
         current_start_time = current_end_time + timedelta(days=1)
-        current_end_time = current_start_time + timedelta(days=27)
+        current_end_time = current_start_time + timedelta(days=6)
 
         params = {
-            "settlementDateFrom": current_start_time.isoformat(),
-            "settlementDateTo": current_end_time.isoformat(),
+            "from": current_start_time.isoformat(),
+            "to": current_end_time.isoformat(),
             "format": "json",
         }
 
-        response = get_response("demand", params, start_time, end_time)
-        response_data = [DemandData(**item) for item in response.json()["data"]]
+        response = get_response("demand/summary", params, start_time, end_time)
+        response_data = [HourlyDemandData(**item) for item in response.json()]
 
         for period in response_data:
             rows.append(
                 {
-                    "date": period.publishTime,
-                    "INDO_mw": period.INDO,
-                    "ITSDO_mw": period.ITSDO,
+                    "date": period.startTime,
+                    "demand_mw": period.demand,
                 }
             )
 
@@ -183,9 +208,6 @@ def demand(start_time: datetime, end_time: datetime) -> pd.DataFrame:
     df = df.set_index("date")
     df.index = df.index.tz_localize(None)
 
-    # downsample to daily
-
-    df = df.resample("1D").mean()
-    df.to_pickle("data/elexon_demand.pkl")
+    df.to_pickle("data/elexon_demand_hourly.pkl")
 
     return df
