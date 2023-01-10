@@ -83,8 +83,10 @@ def all_fuels(
         A dataframe ot total daily generation for each fuel type.
     """
 
+    file_name = f"data/generation_all_fuels_daily_{start_time.year}.pkl"
+
     if from_disk:
-        df = pd.read_pickle("data/generation_all_fuels_daily.pkl")
+        df = pd.read_pickle(file_name)
         return df
 
     # get the raw data (generation is in MW)
@@ -124,7 +126,7 @@ def all_fuels(
     df.index = pd.to_datetime(df.index)
     df.index = df.index.tz_localize(None)
 
-    df.to_pickle("data/generation_all_fuels_daily.pkl")
+    df.to_pickle(file_name)
 
     return df
 
@@ -169,8 +171,10 @@ def demand(
         A dataframe with hourly demand data.
     """
 
+    file_name = f"data/elexon_demand_hourly_{start_time.year}.pkl"
+
     if from_disk:
-        df = pd.read_pickle("data/elexon_demand_hourly.pkl")
+        df = pd.read_pickle(file_name)
         return df
 
     # get the raw data (demand is in MW)
@@ -206,6 +210,6 @@ def demand(
     df = df.set_index("date")
     df.index = df.index.tz_localize(None)
 
-    df.to_pickle("data/elexon_demand_hourly.pkl")
+    df.to_pickle(file_name)
 
     return df

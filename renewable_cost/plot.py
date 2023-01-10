@@ -6,8 +6,12 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.gridspec import GridSpec
 
+from renewable_cost import PLOT_DIR
 
-def plot(df: pd.DataFrame) -> None:
+
+def plot(
+        df: pd.DataFrame, demand_multiplier: float = None, battery_loss: float = None
+) -> None:
     fig = plt.figure()
     width_inches = 10
     height_inches = width_inches * 700 / 1280
@@ -85,7 +89,9 @@ def plot(df: pd.DataFrame) -> None:
         color="tab:green",
         alpha=0.25,
     )
-    df["equivalent_demand_avg_gw"].plot(ax=ax1, label="equiv. demand", color="tab:green")
+    df["equivalent_demand_avg_gw"].plot(
+        ax=ax1, label="equiv. demand", color="tab:green"
+    )
 
     ax1.set(xlabel=None)
     ax1.set(xticklabels=[])
@@ -120,7 +126,9 @@ def plot(df: pd.DataFrame) -> None:
         color="tab:green",
         alpha=0.25,
     )
-    df["equivalent_demand_avg_gw"].plot(ax=ax2, label="equiv. demand", color="tab:green")
+    df["equivalent_demand_avg_gw"].plot(
+        ax=ax2, label="equiv. demand", color="tab:green"
+    )
 
     ax2.set(xlabel=None)
     ax2.set(xticklabels=[])
@@ -155,7 +163,9 @@ def plot(df: pd.DataFrame) -> None:
         color="tab:green",
         alpha=0.25,
     )
-    df["equivalent_demand_avg_gw"].plot(ax=ax3, label="equiv. demand", color="tab:green")
+    df["equivalent_demand_avg_gw"].plot(
+        ax=ax3, label="equiv. demand", color="tab:green"
+    )
 
     ax3.set(xlabel=None)
     ax3.legend(loc="lower left")
@@ -187,7 +197,19 @@ def plot(df: pd.DataFrame) -> None:
 
     ax5.set(xlabel=None)
 
+    subtitle_text = (
+        f"Demand multiplier: {demand_multiplier} "
+        f"Battery loss: {(battery_loss * 100):.0f}%"
+    )
+
+    annotate_subtitle(ax1, subtitle_text)
     annotate_copyright(ax3)
+
+    year = df["wind_gw"].index[0].year
+
+    outfile = make_outfile_name(year)
+    plt.savefig(outfile)
+
     plt.show()
 
 
@@ -214,3 +236,24 @@ def annotate_title(ax: matplotlib.axis, title: str, x=10, y=185, color="black") 
         fontsize=8,
         fontweight=600,
     )
+
+
+def annotate_subtitle(ax, text: str):
+    ax.annotate(
+        text,
+        (0, 0),
+        (125, 510),
+        xycoords="figure points",
+        textcoords="offset pixels",
+        va="top",
+        color="grey",
+        fontsize="small",
+    )
+
+
+def make_outfile_name(year: int) -> str:
+    outfile = (
+            PLOT_DIR
+            / f"figure_{year}.png"
+    )
+    return outfile

@@ -62,8 +62,11 @@ def solar(start_time: datetime, end_time: datetime, from_disk=True) -> pd.DataFr
     Returns:
         A dataframe of total solar daily generation.
     """
+
+    file_name = f"data/sheffield_solar_half_hourly_{start_time.year}.pkl"
+
     if from_disk:
-        df = pd.read_pickle("data/sheffield_solar_half_hourly.pkl")
+        df = pd.read_pickle(file_name)
         return df
 
     # Get the raw data
@@ -110,6 +113,6 @@ def solar(start_time: datetime, end_time: datetime, from_disk=True) -> pd.DataFr
     df.index = pd.to_datetime(df.index)
     df.index = df.index.tz_localize(None)
 
-    df.to_pickle("data/sheffield_solar_half_hourly.pkl")
+    df.to_pickle(file_name)
 
     return df

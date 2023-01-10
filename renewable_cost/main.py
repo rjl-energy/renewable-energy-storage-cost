@@ -21,7 +21,7 @@ pd.set_option("display.colheader_justify", "center")
 pd.set_option("display.precision", 3)
 
 
-def get_data():
+def get_data(year: int, from_disk=True):
     """
     Get daily demand and wind and solar generation.
 
@@ -30,16 +30,16 @@ def get_data():
 
     """
 
-    start_time = datetime(2022, 1, 1)
-    end_time = datetime(2022, 12, 31)
+    start_time = datetime(year, 1, 1)
+    end_time = datetime(year, 12, 31)
 
-    wind_df = wind(start_time, end_time, from_disk=True)
+    wind_df = wind(start_time, end_time, from_disk=from_disk)
     wind_df = wind_df.resample("1D").mean()
 
-    solar_df = solar(start_time, end_time, from_disk=True)
+    solar_df = solar(start_time, end_time, from_disk=from_disk)
     solar_df = solar_df.resample("1D").mean()
 
-    demand_df = demand(start_time, end_time, from_disk=True)
+    demand_df = demand(start_time, end_time, from_disk=from_disk)
     demand_df = demand_df.resample("1D").mean()
 
     df = pd.DataFrame(columns=["demand_mw", "wind_mw", "solar_mw"])
@@ -52,21 +52,26 @@ def get_data():
 
 
 def compute_profiles(
-    demand_multiplier: float = 1.0, battery_loss: float = 0.0
+    year: int = 2022,
+    demand_multiplier: float = 1.0,
+    battery_loss: float = 0.0,
+    from_disk: bool = True,
 ) -> pd.DataFrame:
     """
     Compute profiles to support plotting and cost analysis.
 
     Args:
+        year: The year to get data for
         demand_multiplier: Amount to increase demand by to account for electrification
         battery_loss: Battery loss over a charge/discharge cycle
+        from_disk: Get the data from disk (assumes its been run previously for the specified year)
 
     Returns:
         Dataframe with a day averaged timeseries of profiles.
     """
 
     # get the raw data
-    df = get_data()
+    df = get_data(year=year, from_disk=from_disk)
 
     # compute total wind and solar generation
     df["supply_mw"] = df["wind_mw"] + df["solar_mw"]
@@ -131,18 +136,20 @@ if __name__ == "__main__":
 
     battery_cost_kwh = 200
 
-    # the factor by which electricity demand increases by substituting for hydrocarbon
+    # the factor by which electricity demand increases after substituting for hydrocarbon
     demand_multiplier = 1.0
 
     # battery loss over a charge/discharge cycle
     battery_loss = 0.1
 
     df = compute_profiles(
-        demand_multiplier=demand_multiplier, battery_loss=battery_loss
+        year=2022,
+        demand_multiplier=demand_multiplier,
+        battery_loss=battery_loss,
     )
     cost_data = compute_costs(df, lcoe_params_wind, lcoe_params_solar, battery_cost_kwh)
 
-    # Print analysis
+    # Print analysis ######################################################################
 
     print(f"Average demand {df.demand_mw.mean() / 1000:.1f} GW")
     print(
@@ -164,4 +171,4 @@ if __name__ == "__main__":
         f"- battery  {round(cost_data.max_storage_gwh) / 1000:.1f} TWh (peak) / £{round(cost_data.storage_cost) / pow(10, 12):.1f}tn"
     )
 
-    plot(df)
+    plot(df, demand_multiplier, battery_loss)
