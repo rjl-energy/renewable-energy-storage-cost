@@ -1,6 +1,6 @@
 import pytest
 
-from renewable_cost.costs import LCOEParams, compute_lcoe
+from renewable_cost.costdata import LCOEParams, compute_lcoe
 from pytest import approx
 
 params1 = LCOEParams(
