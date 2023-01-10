@@ -1,5 +1,5 @@
 """
-Get wind data from the National Grid ESO service
+Functions to get wind data from the National Grid ESO service.
 
 NOTE: This doesn't appear to have any data prior to 1 April 2022
 

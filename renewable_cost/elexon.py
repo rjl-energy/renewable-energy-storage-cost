@@ -5,15 +5,13 @@ Elexon returns generation for 30 minute time intervals for a range of fuel types
 https://developer.data.elexon.co.uk/api-details#api=prod-insol-insights-api&operation=get-generation-outturn-summary
 """
 from datetime import datetime, timedelta
+from pprint import pprint
 from typing import List
 from urllib import parse
 
 import pandas as pd
 import requests
 from pydantic import BaseModel, Field
-from pprint import pprint
-import pytz
-
 from requests import Response
 
 

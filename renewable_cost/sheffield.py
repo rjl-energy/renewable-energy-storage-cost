@@ -1,5 +1,5 @@
 """
-Functions to get solar data from Sheffield University PV API
+Functions to get solar data from Sheffield University PV API.
 
 see: https://api0.solar.sheffield.ac.uk/pvlive/docs
 """
@@ -9,8 +9,6 @@ from typing import List, Dict
 
 import pandas as pd
 import requests
-from pprint import pprint
-
 from pydantic import BaseModel
 
 
