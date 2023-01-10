@@ -85,11 +85,11 @@ if __name__ == "__main__":
 
     capex = Capex(wind_kw=1500, solar_kw=1000, battery_kwh=200)
     lcoe_params = LCOEParams(
-        periods=20,
+        periods_years=20,
         discount_rate=0.03,
-        capital_cost=1250,
+        capital_cost_kw=1250,
         capacity_factor=0.25,
-        fixed_OM_cost=25,
+        fixed_OM_cost_kw_yr=25,
     )
 
     df = compute_profiles()
