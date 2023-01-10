@@ -87,8 +87,6 @@ def compute_costs(
 
     """
 
-    print(df.columns)
-
     cost_data = CostData()
 
     # compute wind/solar fractions

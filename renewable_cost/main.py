@@ -13,8 +13,12 @@ from renewable_cost.costdata import LCOEParams, compute_costs
 from renewable_cost.plot import plot
 from sheffield import solar
 
-pd.set_option("display.max_rows", 500)
-pd.set_option("display.max_columns", 500)
+# pretty print dataframes
+pd.set_option("display.max_rows", None)
+pd.set_option("display.max_columns", None)
+pd.set_option("display.width", 1000)
+pd.set_option("display.colheader_justify", "center")
+pd.set_option("display.precision", 3)
 
 
 def get_data():
@@ -47,8 +51,19 @@ def get_data():
     return df
 
 
-def compute_profiles() -> pd.DataFrame:
-    """Compute profiles to support plotting and cost analysis."""
+def compute_profiles(
+    demand_multiplier: float = 1.0, battery_loss: float = 0.0
+) -> pd.DataFrame:
+    """
+    Compute profiles to support plotting and cost analysis.
+
+    Args:
+        demand_multiplier: Amount to increase demand by to account for electrification
+        battery_loss: Battery loss over a charge/discharge cycle
+
+    Returns:
+        Dataframe with a day averaged timeseries of profiles.
+    """
 
     # get the raw data
     df = get_data()
@@ -57,22 +72,38 @@ def compute_profiles() -> pd.DataFrame:
     df["supply_mw"] = df["wind_mw"] + df["solar_mw"]
 
     # factor up wind and solar to match total annual demand
-    mean_demand = df.demand_mw.mean()
-    mean_supply = df.supply_mw.mean()
-    factor = mean_demand / mean_supply
+    equivalent_demand_mw = df.demand_mw * demand_multiplier
+    mean_equivalent_demand_mw = equivalent_demand_mw.mean()
+    mean_supply_mw = df.supply_mw.mean()
+    factor = mean_equivalent_demand_mw / mean_supply_mw
 
+    df["equivalent_demand_mw"] = equivalent_demand_mw
     df["supply_mult_mw"] = df["supply_mw"] * factor
 
     # sanity check
-    assert abs(df.demand_mw.mean() - df.supply_mult_mw.mean()) < 1
+    assert abs(df.demand_mw.mean() * demand_multiplier - df.supply_mult_mw.mean()) < 1
 
     # compute generation surplus and deficit
-    df["delta_mw"] = df["supply_mult_mw"] - df["demand_mw"]
+    df["delta_mw"] = df["supply_mult_mw"] - df["equivalent_demand_mw"]
     df["surplus_mw"] = df["delta_mw"][df["delta_mw"] >= 0]
     df["deficit_mw"] = df["delta_mw"][df["delta_mw"] < 0]
 
     # compute storage balance
-    df["storage_balance_GWh"] = df["delta_mw"].cumsum() * 24 / 1000
+
+    # temp_df = pd.DataFrame(columns=["delta_mw", "surplus_mw", "deficit_mw"])
+    # temp_df["delta_mw"] = df["delta_mw"]
+    # temp_df["surplus_mw"] = df["surplus_mw"]
+    # temp_df["deficit_mw"] = df["deficit_mw"]
+    # temp_df["adjusted_mw"] = df["surplus_mw"].fillna(0) + df["deficit_mw"].fillna(0) * (1 + battery_loss)
+    # temp_df["check"] = temp_df["delta_mw"] - temp_df["adjusted_mw"]
+    #
+    # print(temp_df.head(100))
+
+    adjusted_storage_balance_mw = df["surplus_mw"].fillna(0) + df["deficit_mw"].fillna(
+        0
+    ) * (1 + battery_loss)
+    df["storage_balance_GWh"] = adjusted_storage_balance_mw.cumsum() * 24 / 1000
+
     df["storage_balance_GWh"] = (
         df["storage_balance_GWh"] - df["storage_balance_GWh"].min()
     )
@@ -82,7 +113,6 @@ def compute_profiles() -> pd.DataFrame:
 
 if __name__ == "__main__":
     # assumptions
-
     lcoe_params_wind = LCOEParams(
         periods_years=20,
         discount_rate=0.03,
@@ -101,7 +131,15 @@ if __name__ == "__main__":
 
     battery_cost_kwh = 200
 
-    df = compute_profiles()
+    # the factor by which electricity demand increases by substituting for hydrocarbon
+    demand_multiplier = 1.0
+
+    # battery loss over a charge/discharge cycle
+    battery_loss = 0.1
+
+    df = compute_profiles(
+        demand_multiplier=demand_multiplier, battery_loss=battery_loss
+    )
     cost_data = compute_costs(df, lcoe_params_wind, lcoe_params_solar, battery_cost_kwh)
 
     # Print analysis
@@ -112,12 +150,16 @@ if __name__ == "__main__":
     )
 
     print("Additional cost:")
+
+    wind_cost_bn = cost_data.wind_cost / pow(10, 9)
+    solar_cost_bn = cost_data.solar_cost / pow(10, 9)
     print(
-        f"- wind {cost_data.wind_mw / 1000:.1f} GW / £{round(cost_data.wind_cost / pow(10, 9), 1):.1f}bn @ {cost_data.lcoe_wind_mwh:.0f} £/MWh"
+        f"- wind {cost_data.wind_mw / 1000:.1f} GW / £{wind_cost_bn:.1f}bn @ {cost_data.lcoe_wind_mwh:.0f} £/MWh"
     )
     print(
-        f"- solar {cost_data.solar_mw / 1000:.1f} GW / £{round(cost_data.solar_cost / pow(10, 9), 1):.1f}bn @ {cost_data.lcoe_solar_mwh:.0f} £/MWh"
+        f"- solar {cost_data.solar_mw / 1000:.1f} GW / £{solar_cost_bn:.1f}bn @ {cost_data.lcoe_solar_mwh:.0f} £/MWh"
     )
+    print(f"- total S+W £{(wind_cost_bn + solar_cost_bn):.1f} bn")
     print(
         f"- battery  {round(cost_data.max_storage_gwh) / 1000:.1f} TWh (peak) / £{round(cost_data.storage_cost) / pow(10, 12):.1f}tn"
     )

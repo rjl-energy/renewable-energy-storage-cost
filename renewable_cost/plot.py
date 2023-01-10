@@ -60,17 +60,32 @@ def plot(df: pd.DataFrame) -> None:
     df["solar_gw_avg"].plot(ax=ax1, label="solar", color="tab:orange")
 
     # demand
+
     df["demand_gw"] = df["demand_mw"] / 1000
-    df["demand_gw_avg"] = df["demand_gw"].ewm(span=periods).mean()
+    df["demand_avg_gw"] = df["demand_gw"].ewm(span=periods).mean()
     ax1.fill_between(
         df.index,
         df["demand_gw"],
-        df["demand_gw_avg"],
+        df["demand_avg_gw"],
+        linewidth=0.5,
+        color="tab:green",
+        alpha=0.05,
+    )
+    df["demand_avg_gw"].plot(ax=ax1, label="act. demand", color="tab:green", alpha=0.15)
+
+    # equivalent demand
+
+    df["equivalent_demand_gw"] = df["equivalent_demand_mw"] / 1000
+    df["equivalent_demand_avg_gw"] = df["equivalent_demand_gw"].ewm(span=periods).mean()
+    ax1.fill_between(
+        df.index,
+        df["equivalent_demand_gw"],
+        df["equivalent_demand_avg_gw"],
         linewidth=0.5,
         color="tab:green",
         alpha=0.25,
     )
-    df["demand_gw_avg"].plot(ax=ax1, label="demand", color="tab:green")
+    df["equivalent_demand_avg_gw"].plot(ax=ax1, label="equiv. demand", color="tab:green")
 
     ax1.set(xlabel=None)
     ax1.set(xticklabels=[])
@@ -95,17 +110,17 @@ def plot(df: pd.DataFrame) -> None:
     df["supply_gw_avg"].plot(ax=ax2, label="wind+solar", color="tab:purple")
 
     # demand
-    df["demand_gw"] = df["demand_mw"] / 1000
-    df["demand_gw_avg"] = df["demand_gw"].ewm(span=periods).mean()
+    df["equivalent_demand_gw"] = df["equivalent_demand_mw"] / 1000
+    df["equivalent_demand_avg_gw"] = df["equivalent_demand_gw"].ewm(span=periods).mean()
     ax2.fill_between(
         df.index,
-        df["demand_gw"],
-        df["demand_gw_avg"],
+        df["equivalent_demand_gw"],
+        df["equivalent_demand_avg_gw"],
         linewidth=0.5,
         color="tab:green",
         alpha=0.25,
     )
-    df["demand_gw_avg"].plot(ax=ax2, label="demand", color="tab:green")
+    df["equivalent_demand_avg_gw"].plot(ax=ax2, label="equiv. demand", color="tab:green")
 
     ax2.set(xlabel=None)
     ax2.set(xticklabels=[])
@@ -130,17 +145,17 @@ def plot(df: pd.DataFrame) -> None:
     df["supply_mult_gw_avg"].plot(ax=ax3, label="wind+solar", color="tab:purple")
 
     # demand
-    df["demand_gw"] = df["demand_mw"] / 1000
-    df["demand_gw_avg"] = df["demand_gw"].ewm(span=periods).mean()
+    df["equivalent_demand_gw"] = df["equivalent_demand_mw"] / 1000
+    df["equivalent_demand_avg_gw"] = df["equivalent_demand_gw"].ewm(span=periods).mean()
     ax3.fill_between(
         df.index,
-        df["demand_gw"],
-        df["demand_gw_avg"],
+        df["equivalent_demand_gw"],
+        df["equivalent_demand_avg_gw"],
         linewidth=0.5,
         color="tab:green",
         alpha=0.25,
     )
-    df["demand_gw_avg"].plot(ax=ax3, label="demand", color="tab:green")
+    df["equivalent_demand_avg_gw"].plot(ax=ax3, label="equiv. demand", color="tab:green")
 
     ax3.set(xlabel=None)
     ax3.legend(loc="lower left")

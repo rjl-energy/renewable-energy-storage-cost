@@ -110,8 +110,6 @@ def solar(start_time: datetime, end_time: datetime, from_disk=True) -> pd.DataFr
     df.index = pd.to_datetime(df.index)
     df.index = df.index.tz_localize(None)
 
-    print(df.head(200))
-
     df.to_pickle("data/sheffield_solar_half_hourly.pkl")
 
     return df
