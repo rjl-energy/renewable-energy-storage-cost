@@ -9,7 +9,7 @@ from pprint import pprint
 import pandas as pd
 
 from elexon import wind, demand
-from renewable_cost.costdata import LCOEParams, compute_costs
+from renewable_cost.costdata import LCOEParams, compute_costs, compute_lcoe
 from renewable_cost.plot import plot
 from sheffield import solar
 
@@ -52,10 +52,10 @@ def get_data(year: int, from_disk=True):
 
 
 def compute_profiles(
-    year: int = 2022,
-    demand_multiplier: float = 1.0,
-    battery_loss: float = 0.0,
-    from_disk: bool = True,
+        year: int = 2022,
+        demand_multiplier: float = 1.0,
+        battery_loss: float = 0.0,
+        from_disk: bool = True,
 ) -> pd.DataFrame:
     """
     Compute profiles to support plotting and cost analysis.
@@ -110,7 +110,7 @@ def compute_profiles(
     df["storage_balance_GWh"] = adjusted_storage_balance_mw.cumsum() * 24 / 1000
 
     df["storage_balance_GWh"] = (
-        df["storage_balance_GWh"] - df["storage_balance_GWh"].min()
+            df["storage_balance_GWh"] - df["storage_balance_GWh"].min()
     )
 
     return df
@@ -118,20 +118,23 @@ def compute_profiles(
 
 if __name__ == "__main__":
     # assumptions
+
+    # ‘Electricity Generation Costs 2020’. 2020. UK Government. Table 2.3
     lcoe_params_wind = LCOEParams(
-        periods_years=20,
+        periods_years=30,
         discount_rate=0.03,
-        capital_cost_kw=1500,
+        capital_cost_kw=1300,
         capacity_factor=0.25,
-        fixed_OM_cost_kw_yr=25,
+        fixed_OM_cost_kw_yr=28,
     )
 
+    # ‘Electricity Generation Costs 2020’. 2020. UK Government. Table 2.1
     lcoe_params_solar = LCOEParams(
-        periods_years=20,
+        periods_years=35,
         discount_rate=0.03,
-        capital_cost_kw=1000,
+        capital_cost_kw=400,
         capacity_factor=0.25,
-        fixed_OM_cost_kw_yr=25,
+        fixed_OM_cost_kw_yr=6.7,
     )
 
     battery_cost_kwh = 200
@@ -170,5 +173,20 @@ if __name__ == "__main__":
     print(
         f"- battery  {round(cost_data.max_storage_gwh) / 1000:.1f} TWh (peak) / £{round(cost_data.storage_cost) / pow(10, 12):.1f}tn"
     )
+
+    # compute storage lcoe
+    storage_capacity_gw = cost_data.max_storage_gwh / (365 * 24)
+    storage_cost = cost_data.storage_cost
+    storage_capex_kw = storage_cost / (storage_capacity_gw * 1000 * 1000)
+
+    lcoe_params_solar = LCOEParams(
+        periods_years=35,
+        discount_rate=0.03,
+        capital_cost_kw=storage_capex_kw,
+        capacity_factor=1,
+        fixed_OM_cost_kw_yr=0,
+    )
+    lcoe_storage_mwh = compute_lcoe(lcoe_params_solar)
+    print(f"Solar LCOE: {lcoe_storage_mwh:.0f} £/MWh")
 
     plot(df, demand_multiplier, battery_loss)

@@ -196,6 +196,7 @@ def plot(
     ax5.fill_between(df.index, df["storage_balance_TWh"], color="tab:red", alpha=0.1)
 
     ax5.set(xlabel=None)
+    ax5.set_ylim([0, 20])
 
     subtitle_text = (
         f"Demand multiplier: {demand_multiplier} "
@@ -215,9 +216,9 @@ def plot(
 
 def annotate_copyright(ax) -> None:
     ax.annotate(
-        "© Lyon Energy Futures Ltd. (2022)",
+        "© Lyon Energy Futures Ltd. (2023)",
         (0, 0),
-        (720, 25),
+        (665, 25),
         xycoords="figure points",
         textcoords="offset pixels",
         va="top",
@@ -242,7 +243,7 @@ def annotate_subtitle(ax, text: str):
     ax.annotate(
         text,
         (0, 0),
-        (125, 510),
+        (155, 510),
         xycoords="figure points",
         textcoords="offset pixels",
         va="top",

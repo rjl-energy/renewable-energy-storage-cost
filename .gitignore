@@ -1,3 +1,4 @@
 .idea
 __pycache__
 *.pkl
+renewable_cost/plot/
