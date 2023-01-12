@@ -172,7 +172,7 @@ def plot(
 
     # Bottom right (top): Generation balance.
 
-    title = "[E] Supply/demand balance (GW)"
+    title = "[D] Supply/demand balance (GW)"
     annotate_title(ax4, title, y=5)
 
     df["surplus_gw"] = df["surplus_mw"].fillna(0) / 1000
@@ -187,7 +187,7 @@ def plot(
 
     # Bottom right (bottom): Storage requirement.
 
-    title = "[F] Storage requirement (TWh)"
+    title = "[E] Storage requirement (TWh)"
     annotate_title(ax5, title, y=5)
 
     # storage balance
@@ -196,7 +196,7 @@ def plot(
     ax5.fill_between(df.index, df["storage_balance_TWh"], color="tab:red", alpha=0.1)
 
     ax5.set(xlabel=None)
-    ax5.set_ylim([0, 20])
+    ax5.set_ylim([0, 30])
 
     subtitle_text = (
         f"Demand multiplier: {demand_multiplier} "
