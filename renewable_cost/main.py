@@ -140,7 +140,7 @@ if __name__ == "__main__":
     battery_cost_kwh = 200
 
     # the factor by which electricity demand increases after substituting for hydrocarbon
-    demand_multiplier = 1.5
+    demand_multiplier = 1.0
 
     # battery loss over a charge/discharge cycle
     battery_loss = 0.1
